@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <title>PDF Crop + AI (Gemini & Grok)</title>
     
-    <script src="data/pdf.min.js"></script>
-    <script src="data/pdf-lib.min.js"></script>
-    <script src="data/FileSaver.min.js"></script>
+    <script src="pdf.min.js"></script>
+    <script src="pdf-lib.min.js"></script>
+    <script src="FileSaver.min.js"></script>
     
     <style>
         body { 
@@ -412,7 +412,7 @@
 
     <script>
         // CONFIGURACIÓN DEL WORKER LOCAL
-        pdfjsLib.GlobalWorkerOptions.workerSrc = 'data/pdf.worker.min.js';
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'pdf.worker.min.js';
 
         let accumulatedFiles = [];
         let workQueue = [];
