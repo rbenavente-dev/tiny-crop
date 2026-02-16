@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>PDF Vector Crop + AI</title>
+    <title>PDF Secure Ultra-Scan 3.0</title>
     
     <script src="pdf.min.js"></script>
     <script src="pdf-lib.min.js"></script>
@@ -10,26 +10,33 @@
     
     <style>
         body { font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; align-items: center; background: #1a1a1a; color: #e0e0e0; margin: 0; min-height: 100vh; padding: 20px; }
-        .container { width: 90%; max-width: 800px; text-align: center; margin-top: 20px; }
-        h1 { color: #00ffcc; margin-bottom: 30px; }
-        .step { background: #252525; border-radius: 12px; padding: 25px; margin-bottom: 20px; border: 2px solid #333; }
-        .step.active { border-color: #00ffcc; }
+        .container { width: 90%; max-width: 900px; text-align: center; margin-top: 20px; }
+        h1 { color: #00ffcc; margin-bottom: 30px; text-shadow: 0 0 10px rgba(0,255,204,0.3); }
+        .step { background: #252525; border-radius: 12px; padding: 25px; margin-bottom: 20px; border: 2px solid #333; transition: all 0.3s; }
+        .step.active { border-color: #00ffcc; box-shadow: 0 0 20px rgba(0,255,204,0.1); }
         .step-title { font-size: 1.3em; font-weight: bold; color: #00ffcc; margin-bottom: 15px; display: flex; align-items: center; justify-content: center; gap: 10px; }
         .step-number { background: #00ffcc; color: #1a1a1a; width: 30px; height: 30px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-weight: bold; }
+        
         #drop-zone { padding: 40px; border: 3px dashed #444; border-radius: 15px; background: #2a2a2a; transition: all 0.3s; cursor: pointer; }
-        #file-list { margin: 20px 0; text-align: left; background: #222; border-radius: 8px; max-height: 200px; overflow-y: auto; padding: 10px; display: none; }
+        #drop-zone:hover { border-color: #00ffcc; background: #2d3533; }
+        
+        #file-list { margin: 20px 0; text-align: left; background: #222; border-radius: 8px; max-height: 150px; overflow-y: auto; padding: 10px; display: none; }
         .file-item { font-size: 0.85em; padding: 5px; border-bottom: 1px solid #333; color: #00ffcc; }
+        
         .btn { padding: 12px 25px; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; margin: 5px; transition: all 0.2s; }
         .btn-primary { background: #00ffcc; color: #1a1a1a; }
         .btn-success { background: #44ff44; color: #1a1a1a; }
+        .btn-skip { background: #555; color: white; }
+        
         #work-area { display: none; width: 100%; flex-direction: column; align-items: center; margin-top: 20px; }
-        #canvas-container { position: relative; border: 1px solid #444; cursor: crosshair; box-shadow: 0 10px 30px rgba(0,0,0,0.5); margin: 20px 0; background: white; }
-        canvas { display: block; }
+        #canvas-container { position: relative; border: 1px solid #444; cursor: crosshair; box-shadow: 0 10px 30px rgba(0,0,0,0.5); margin-bottom: 20px; background: white; max-width: 100%; overflow: auto; }
         #selection-box { position: absolute; border: 2px dashed #00ffcc; background: rgba(0, 255, 204, 0.2); display: none; pointer-events: none; }
+        
         .input-group { margin: 15px 0; text-align: left; }
         .input-group label { display: block; margin-bottom: 8px; color: #00ffcc; font-weight: bold; }
-        .input-group input, .input-group textarea { width: 100%; padding: 12px; border: 2px solid #444; border-radius: 5px; background: #2a2a2a; color: #e0e0e0; box-sizing: border-box; }
-        #gemini-response { background: #2a2a2a; border: 2px solid #444; border-radius: 8px; padding: 20px; margin-top: 20px; text-align: left; white-space: pre-wrap; }
+        .input-group input, .input-group textarea { width: 100%; padding: 12px; border: 2px solid #444; border-radius: 5px; background: #2a2a2a; color: #e0e0e0; font-family: inherit; box-sizing: border-box; }
+        
+        #gemini-response { background: #2a2a2a; border: 2px solid #444; border-radius: 8px; padding: 20px; margin-top: 20px; text-align: left; white-space: pre-wrap; line-height: 1.6; }
         .hidden { display: none !important; }
         #loading-spinner { border: 4px solid #333; border-top: 4px solid #00ffcc; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 20px auto; display: none; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
@@ -37,72 +44,77 @@
 </head>
 <body>
 
-    <h1>📄 PDF Vector Clean + 🤖 AI</h1>
+    <h1>📄 PDF Ultra-Secure Crop 3.0</h1>
 
     <div class="container">
         <div class="step active" id="step1">
             <div class="step-title"><span class="step-number">1</span> Cargar Originales</div>
-            <div id="drop-zone"><p>📁 Arrastra tus PDFs aquí</p></div>
+            <div id="drop-zone"><p>📁 Arrastra tus archivos PDF aquí</p></div>
             <div id="file-list"></div>
             <div id="actions" class="hidden">
-                <button class="btn btn-primary" id="startBtn">Iniciar Recorte Vectorial</button>
+                <button class="btn btn-primary" id="startBtn">Iniciar Anonimización</button>
             </div>
         </div>
 
         <div class="step hidden" id="step2">
-            <div class="step-title"><span class="step-number">2</span> Recorte de Alta Calidad</div>
+            <div class="step-title"><span class="step-number">2</span> Recorte de Alta Densidad (300+ DPI)</div>
+            <p style="font-size: 0.85em; color: #888; margin-bottom: 10px;">Selecciona el área a conservar. El resto será destruido permanentemente.</p>
             <div id="work-area">
                 <div id="canvas-container">
                     <canvas id="pdfCanvas"></canvas>
                     <div id="selection-box"></div>
                 </div>
-                <button class="btn btn-primary" id="skipPageBtn">Omitir Página</button>
+                <button class="btn btn-skip" id="skipPageBtn">Omitir Página</button>
             </div>
         </div>
 
         <div class="step hidden" id="step3">
-            <div class="step-title"><span class="step-number">3</span> Envío Seguro</div>
+            <div class="step-title"><span class="step-number">3</span> Envío a Inteligencia Artificial</div>
             <div class="input-group">
-                <label>🔑 API Key:</label>
-                <input type="password" id="apiKeyInput" />
+                <label>🔑 API Key (Gemini):</label>
+                <input type="password" id="apiKeyInput" placeholder="Pega tu clave aquí..." />
             </div>
             <div class="input-group">
-                <label>💬 Prompt:</label>
-                <textarea id="promptInput">Analiza el contenido de este recorte PDF.</textarea>
+                <label>💬 Instrucciones para el análisis:</label>
+                <textarea id="promptInput" rows="4">Analiza el contenido de estos fragmentos de documentos y extrae la información relevante.</textarea>
             </div>
-            <button class="btn btn-success" id="sendBtn">🚀 Enviar a IA</button>
-            <button class="btn btn-primary" id="downloadBtn">💾 Guardar PDF Vectorial</button>
+            <button class="btn btn-success" id="sendBtn">🚀 Enviar a Gemini</button>
+            <button class="btn btn-primary" id="downloadBtn">💾 Descargar PDF Anonimizado</button>
             <div id="loading-spinner"></div>
         </div>
 
         <div class="step hidden" id="step4">
-            <div class="step-title"><span class="step-number">4</span> Resultado</div>
+            <div class="step-title"><span class="step-number">4</span> Resultado del Análisis</div>
             <div id="gemini-response"></div>
-            <button class="btn btn-primary" onclick="location.reload()">🔄 Nuevo</button>
+            <button class="btn btn-primary" onclick="location.reload()">🔄 Nuevo Análisis</button>
         </div>
     </div>
 
     <script>
+        // Configuración de Worker local
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'pdf.worker.min.js';
 
         let accumulatedFiles = [];
         let workQueue = [];
         let currentTaskIndex = 0;
-        let cropResults = [];
+        let secureImages = [];
         let finalPdfBytes = null;
+        const SCALE_FACTOR = 3.0; // ESCALA 3.0 para máxima nitidez
 
         const canvas = document.getElementById('pdfCanvas');
         const ctx = canvas.getContext('2d');
         const selectionBox = document.getElementById('selection-box');
 
+        // Lógica de carga
         document.getElementById('drop-zone').onclick = () => {
             let i = document.createElement('input'); i.type='file'; i.multiple=true; i.onchange=(e)=>handleFiles(e.target.files); i.click();
         };
 
         function handleFiles(files) {
             accumulatedFiles = [...accumulatedFiles, ...Array.from(files)];
-            document.getElementById('file-list').style.display = 'block';
-            document.getElementById('file-list').innerHTML = accumulatedFiles.map(f => `<div class="file-item">📄 ${f.name}</div>`).join('');
+            const list = document.getElementById('file-list');
+            list.style.display = 'block';
+            list.innerHTML = accumulatedFiles.map(f => `<div class="file-item">📄 ${f.name}</div>`).join('');
             document.getElementById('actions').classList.remove('hidden');
         }
 
@@ -111,7 +123,7 @@
                 const data = await file.arrayBuffer();
                 const doc = await pdfjsLib.getDocument({data}).promise;
                 for (let p = 1; p <= doc.numPages; p++) {
-                    workQueue.push({ fileData: data, pageNumber: p, docJS: doc });
+                    workQueue.push({ doc, pageNumber: p });
                 }
             }
             showStep(2);
@@ -121,106 +133,149 @@
 
         async function loadPage() {
             if (currentTaskIndex >= workQueue.length) {
-                await processVectorCrops();
+                await generateFinalPdf();
                 return;
             }
             const task = workQueue[currentTaskIndex];
-            const page = await task.docJS.getPage(task.pageNumber);
-            const viewport = page.getViewport({ scale: 1.0 });
-            canvas.width = viewport.width; canvas.height = viewport.height;
+            const page = await task.doc.getPage(task.pageNumber);
+            
+            // Renderizamos internamente a alta escala
+            const viewport = page.getViewport({ scale: SCALE_FACTOR });
+            canvas.width = viewport.width;
+            canvas.height = viewport.height;
+            
+            // Ajustar visualización del canvas en pantalla (CSS) para que no sea gigante
+            canvas.style.width = (viewport.width / 2) + "px"; 
+            
             await page.render({ canvasContext: ctx, viewport }).promise;
         }
 
+        // Interacción de recorte
         let startX, startY, isDrawing = false;
         canvas.onmousedown = (e) => {
             isDrawing = true;
             const r = canvas.getBoundingClientRect();
-            startX = e.clientX - r.left; startY = e.clientY - r.top;
+            // Calculamos coordenadas relativas al factor de escala interno del canvas
+            const scaleX = canvas.width / r.width;
+            const scaleY = canvas.height / r.height;
+            startX = (e.clientX - r.left) * scaleX;
+            startY = (e.clientY - r.top) * scaleY;
+            
             selectionBox.style.display = 'block';
+            updateBoxUI(e);
         };
 
         window.onmousemove = (e) => {
             if (!isDrawing) return;
-            const r = canvas.getBoundingClientRect();
-            const curX = e.clientX - r.left, curY = e.clientY - r.top;
-            selectionBox.style.width = Math.abs(curX - startX) + 'px';
-            selectionBox.style.height = Math.abs(curY - startY) + 'px';
-            selectionBox.style.left = Math.min(curX, startX) + 'px';
-            selectionBox.style.top = Math.min(curY, startY) + 'px';
+            updateBoxUI(e);
         };
+
+        function updateBoxUI(e) {
+            const r = canvas.getBoundingClientRect();
+            const curX = (e.clientX - r.left);
+            const curY = (e.clientY - r.top);
+            
+            const visualStartX = startX / (canvas.width / r.width);
+            const visualStartY = startY / (canvas.height / r.height);
+
+            selectionBox.style.width = Math.abs(curX - visualStartX) + 'px';
+            selectionBox.style.height = Math.abs(curY - visualStartY) + 'px';
+            selectionBox.style.left = Math.min(curX, visualStartX) + 'px';
+            selectionBox.style.top = Math.min(curY, visualStartY) + 'px';
+        }
 
         window.onmouseup = async (e) => {
             if (!isDrawing) return;
             isDrawing = false;
             const r = canvas.getBoundingClientRect();
-            const endX = e.clientX - r.left;
-            const endY = e.clientY - r.top;
+            const scaleX = canvas.width / r.width;
+            const scaleY = canvas.height / r.height;
+            
+            const endX = (e.clientX - r.left) * scaleX;
+            const endY = (e.clientY - r.top) * scaleY;
+            
             selectionBox.style.display = 'none';
 
             const w = Math.abs(endX - startX);
             const h = Math.abs(endY - startY);
 
-            if (w > 10 && h > 10) {
-                cropResults.push({
-                    pageIndex: workQueue[currentTaskIndex].pageNumber - 1,
-                    fileData: workQueue[currentTaskIndex].fileData,
-                    x: Math.min(startX, endX),
-                    y: canvas.height - Math.max(startY, endY), // Invertir Y para PDF-lib
-                    width: w,
-                    height: h,
-                    canvasHeight: canvas.height
-                });
+            if (w > 20 && h > 20) {
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = w;
+                tempCanvas.height = h;
+                const tempCtx = tempCanvas.getContext('2d');
+                
+                // Extraemos los píxeles reales a escala 3.0
+                tempCtx.drawImage(canvas, 
+                    Math.min(startX, endX), Math.min(startY, endY), w, h, 
+                    0, 0, w, h
+                );
+                
+                secureImages.push(tempCanvas.toDataURL('image/jpeg', 0.92));
                 currentTaskIndex++;
                 loadPage();
             }
         };
 
-        document.getElementById('skipPageBtn').onclick = () => { currentTaskIndex++; loadPage(); };
+        document.getElementById('skipPageBtn').onclick = () => {
+            currentTaskIndex++;
+            loadPage();
+        };
 
-        async function processVectorCrops() {
+        async function generateFinalPdf() {
             const { PDFDocument } = PDFLib;
-            const finalDoc = await PDFDocument.create();
+            const pdfDoc = await PDFDocument.create();
 
-            for (const crop of cropResults) {
-                const sourceDoc = await PDFDocument.load(crop.fileData);
-                const [copiedPage] = await finalDoc.copyPages(sourceDoc, [crop.pageIndex]);
-                
-                // AJUSTE VECTORIAL: Redefinimos los límites reales de la página
-                // Esto hace que el PDF solo "exista" en ese recuadro
-                copiedPage.setCropBox(crop.x, crop.y, crop.width, crop.height);
-                copiedPage.setMediaBox(crop.x, crop.y, crop.width, crop.height);
-                
-                finalDoc.addPage(copiedPage);
+            for (let dataUrl of secureImages) {
+                const img = await pdfDoc.embedJpg(dataUrl);
+                // Dividimos por el factor de escala para que el PDF tenga dimensiones normales pero alta densidad
+                const page = pdfDoc.addPage([img.width / SCALE_FACTOR, img.height / SCALE_FACTOR]);
+                page.drawImage(img, {
+                    x: 0, y: 0, 
+                    width: img.width / SCALE_FACTOR, 
+                    height: img.height / SCALE_FACTOR 
+                });
             }
-
-            finalPdfBytes = await finalDoc.save();
+            finalPdfBytes = await pdfDoc.save();
             showStep(3);
         }
 
+        // Comunicación con Gemini
         document.getElementById('sendBtn').onclick = async () => {
             const key = document.getElementById('apiKeyInput').value;
-            if(!key) return alert("API Key requerida");
-            document.getElementById('loading-spinner').style.display = 'block';
+            if(!key) return alert("Por favor, introduce tu API Key.");
             
+            document.getElementById('loading-spinner').style.display = 'block';
             const base64 = btoa(new Uint8Array(finalPdfBytes).reduce((d, b) => d + String.fromCharCode(b), ''));
             
             try {
-                const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`, {
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`, {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ contents: [{ parts: [
-                        { text: document.getElementById('promptInput').value },
-                        { inline_data: { mime_type: "application/pdf", data: base64 } }
-                    ]}]})
+                    body: JSON.stringify({
+                        contents: [{
+                            parts: [
+                                { text: document.getElementById('promptInput').value },
+                                { inline_data: { mime_type: "application/pdf", data: base64 } }
+                            ]
+                        }]
+                    })
                 });
-                const d = await r.json();
-                document.getElementById('gemini-response').innerText = d.candidates[0].content.parts[0].text;
+                const data = await response.json();
+                const textOutput = data.candidates[0].content.parts[0].text;
+                document.getElementById('gemini-response').innerText = textOutput;
                 showStep(4);
-            } catch (e) { alert("Error"); }
-            finally { document.getElementById('loading-spinner').style.display = 'none'; }
+            } catch (e) {
+                alert("Error al contactar con la IA. Revisa tu conexión y tu API Key.");
+                console.error(e);
+            } finally {
+                document.getElementById('loading-spinner').style.display = 'none';
+            }
         };
 
-        document.getElementById('downloadBtn').onclick = () => saveAs(new Blob([finalPdfBytes]), "recorte_vectorial.pdf");
+        document.getElementById('downloadBtn').onclick = () => {
+            saveAs(new Blob([finalPdfBytes], {type: "application/pdf"}), "doc_anonimizado_ultra.pdf");
+        };
 
         function showStep(n) {
             document.querySelectorAll('.step').forEach(s => s.classList.add('hidden'));
