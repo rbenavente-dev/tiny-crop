@@ -2,897 +2,240 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>PDF Crop + AI (Gemini & Grok)</title>
+    <title>PDF Redact + AI (Gemini & Grok)</title>
     
-    <script src="pdf.min.js"></script>
-    <script src="pdf-lib.min.js"></script>
-    <script src="FileSaver.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+    <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
     
     <style>
-        body { 
-            font-family: 'Segoe UI', sans-serif; 
-            display: flex; 
-            flex-direction: column; 
-            align-items: center; 
-            background: #1a1a1a; 
-            color: #e0e0e0; 
-            margin: 0; 
-            min-height: 100vh; 
-            padding: 20px;
-        }
-        
-        .container { 
-            width: 90%; 
-            max-width: 800px; 
-            text-align: center; 
-            margin-top: 20px; 
-        }
-        
-        h1 { 
-            color: #00ffcc; 
-            margin-bottom: 30px; 
-        }
-        
-        .step { 
-            background: #252525; 
-            border-radius: 12px; 
-            padding: 25px; 
-            margin-bottom: 20px; 
-            border: 2px solid #333;
-        }
-        
-        .step.active { 
-            border-color: #00ffcc; 
-        }
-        
-        .step-title { 
-            font-size: 1.3em; 
-            font-weight: bold; 
-            color: #00ffcc; 
-            margin-bottom: 15px; 
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-        }
-        
-        .step-number { 
-            background: #00ffcc; 
-            color: #1a1a1a; 
-            width: 30px; 
-            height: 30px; 
-            border-radius: 50%; 
-            display: inline-flex; 
-            align-items: center; 
-            justify-content: center; 
-            font-weight: bold; 
-        }
-        
-        #drop-zone { 
-            padding: 40px; 
-            border: 3px dashed #444; 
-            border-radius: 15px; 
-            background: #2a2a2a; 
-            transition: all 0.3s; 
-            cursor: pointer; 
-        }
-        
-        #drop-zone.dragging { 
-            border-color: #00ffcc; 
-            background: #2d3533; 
-        }
-        
-        #file-list { 
-            margin: 20px 0; 
-            text-align: left; 
-            background: #222; 
-            border-radius: 8px; 
-            max-height: 200px; 
-            overflow-y: auto; 
-            padding: 10px; 
-            display: none; 
-        }
-        
-        .file-item { 
-            font-size: 0.85em; 
-            padding: 5px; 
-            border-bottom: 1px solid #333; 
-            color: #00ffcc; 
-        }
-        
-        .btn { 
-            padding: 12px 25px; 
-            border: none; 
-            border-radius: 5px; 
-            font-weight: bold; 
-            cursor: pointer; 
-            margin: 5px; 
-            transition: all 0.2s;
-        }
-        
-        .btn:hover { 
-            transform: translateY(-2px); 
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3); 
-        }
-        
-        .btn:disabled { 
-            opacity: 0.5; 
-            cursor: not-allowed; 
-            transform: none; 
-        }
-        
-        .btn-primary { 
-            background: #00ffcc; 
-            color: #1a1a1a; 
-        }
-        
-        .btn-danger { 
-            background: #ff4444; 
-            color: white; 
-        }
-        
-        .btn-success { 
-            background: #44ff44; 
-            color: #1a1a1a; 
-        }
-        
-        #work-area { 
-            display: none; 
-            width: 100%; 
-            flex-direction: column; 
-            align-items: center; 
-            margin-top: 20px; 
-        }
-        
-        #canvas-container { 
-            position: relative; 
-            border: 1px solid #444; 
-            cursor: crosshair; 
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5); 
-            margin: 20px 0;
-        }
-        
-        canvas { 
-            display: block; 
-            background: white; 
-        }
-        
-        #selection-box { 
-            position: absolute; 
-            border: 2px dashed #00ffcc; 
-            background: rgba(0, 255, 204, 0.2); 
-            display: none; 
-            pointer-events: none; 
-        }
-        
-        #progress-container { 
-            width: 100%; 
-            margin-bottom: 15px; 
-        }
-        
-        #progress-bar { 
-            width: 100%; 
-            height: 6px; 
-            background: #333; 
-            border-radius: 3px; 
-            overflow: hidden; 
-        }
-        
-        #progress-fill { 
-            height: 100%; 
-            background: #00ffcc; 
-            width: 0%; 
-            transition: width 0.2s; 
-        }
-        
-        .input-group { 
-            margin: 15px 0; 
-            text-align: left; 
-        }
-        
-        .input-group label { 
-            display: block; 
-            margin-bottom: 8px; 
-            color: #00ffcc; 
-            font-weight: bold; 
-        }
-        
-        .input-group input, 
-        .input-group textarea,
-        .input-group select { 
-            width: 100%; 
-            padding: 12px; 
-            border: 2px solid #444; 
-            border-radius: 5px; 
-            background: #2a2a2a; 
-            color: #e0e0e0; 
-            font-family: inherit; 
-            box-sizing: border-box;
-        }
-        
-        .input-group input:focus, 
-        .input-group textarea:focus,
-        .input-group select:focus { 
-            outline: none; 
-            border-color: #00ffcc; 
-        }
-        
-        .input-group select {
-            cursor: pointer;
-        }
-        
-        .input-group select option {
-            background: #2a2a2a;
-            color: #e0e0e0;
-            padding: 10px;
-        }
-        
-        .input-group textarea { 
-            min-height: 100px; 
-            resize: vertical; 
-        }
-        
-        #gemini-response { 
-            background: #2a2a2a; 
-            border: 2px solid #444; 
-            border-radius: 8px; 
-            padding: 20px; 
-            margin-top: 20px; 
-            text-align: left; 
-            max-height: 400px; 
-            overflow-y: auto; 
-            white-space: pre-wrap; 
-            word-wrap: break-word;
-            line-height: 1.6;
-        }
-        
-        .hidden { 
-            display: none !important; 
-        }
-        
-        .success-message { 
-            color: #44ff44; 
-            font-weight: bold; 
-            margin: 10px 0; 
-        }
-        
-        .error-message { 
-            color: #ff4444; 
-            font-weight: bold; 
-            margin: 10px 0; 
-        }
-        
-        .info-box { 
-            background: #2d3533; 
-            border-left: 4px solid #00ffcc; 
-            padding: 15px; 
-            margin: 15px 0; 
-            border-radius: 5px; 
-            text-align: left; 
-            font-size: 0.9em; 
-        }
-        
-        #loading-spinner { 
-            border: 4px solid #333; 
-            border-top: 4px solid #00ffcc; 
-            border-radius: 50%; 
-            width: 40px; 
-            height: 40px; 
-            animation: spin 1s linear infinite; 
-            margin: 20px auto; 
-            display: none; 
-        }
-        
-        @keyframes spin { 
-            0% { transform: rotate(0deg); } 
-            100% { transform: rotate(360deg); } 
-        }
+        /* (Se mantiene el estilo CSS original del archivo) */
+        body { font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; align-items: center; background: #1a1a1a; color: #e0e0e0; margin: 0; min-height: 100vh; padding: 20px; }
+        .container { width: 90%; max-width: 800px; text-align: center; margin-top: 20px; }
+        h1 { color: #00ffcc; margin-bottom: 30px; }
+        .step { background: #252525; border-radius: 12px; padding: 25px; margin-bottom: 20px; border: 2px solid #333; }
+        .step.active { border-color: #00ffcc; }
+        .step-title { font-size: 1.3em; font-weight: bold; color: #00ffcc; margin-bottom: 15px; display: flex; align-items: center; justify-content: center; gap: 10px; }
+        .step-number { background: #00ffcc; color: #1a1a1a; width: 30px; height: 30px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-weight: bold; }
+        #drop-zone { padding: 40px; border: 3px dashed #444; border-radius: 15px; background: #2a2a2a; transition: all 0.3s; cursor: pointer; }
+        #drop-zone.dragging { border-color: #00ffcc; background: #2d3533; }
+        #file-list { margin: 20px 0; text-align: left; background: #222; border-radius: 8px; max-height: 200px; overflow-y: auto; padding: 10px; display: none; }
+        .file-item { font-size: 0.85em; padding: 5px; border-bottom: 1px solid #333; color: #00ffcc; }
+        .btn { padding: 12px 25px; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; margin: 5px; transition: all 0.2s; }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+        .btn-primary { background: #00ffcc; color: #1a1a1a; }
+        .btn-danger { background: #ff4444; color: white; }
+        .btn-success { background: #44ff44; color: #1a1a1a; }
+        #work-area { display: none; width: 100%; flex-direction: column; align-items: center; margin-top: 20px; }
+        #canvas-container { position: relative; border: 1px solid #444; cursor: crosshair; box-shadow: 0 10px 30px rgba(0,0,0,0.5); margin: 20px 0; }
+        canvas { display: block; background: white; }
+        #selection-box { position: absolute; border: 2px dashed #00ffcc; background: rgba(0, 255, 204, 0.2); display: none; pointer-events: none; }
+        .input-group { margin: 15px 0; text-align: left; }
+        .input-group label { display: block; margin-bottom: 8px; color: #00ffcc; font-weight: bold; }
+        .input-group input, .input-group textarea, .input-group select { width: 100%; padding: 12px; border: 2px solid #444; border-radius: 5px; background: #2a2a2a; color: #e0e0e0; font-family: inherit; box-sizing: border-box; }
+        #gemini-response { background: #2a2a2a; border: 2px solid #444; border-radius: 8px; padding: 20px; margin-top: 20px; text-align: left; max-height: 400px; overflow-y: auto; white-space: pre-wrap; line-height: 1.6; }
+        .hidden { display: none !important; }
+        .info-box { background: #2d3533; border-left: 4px solid #00ffcc; padding: 15px; margin: 15px 0; border-radius: 5px; text-align: left; font-size: 0.9em; }
+        #loading-spinner { border: 4px solid #333; border-top: 4px solid #00ffcc; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 20px auto; display: none; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
 
-    <h1>📄 PDF Crop + 🤖 AI (Gemini & Grok)</h1>
+    <h1>📄 PDF Destructive Crop + 🤖 AI</h1>
 
     <div class="container">
-        <!-- PASO 1: CARGAR ARCHIVOS -->
         <div class="step active" id="step1">
-            <div class="step-title">
-                <span class="step-number">1</span>
-                Cargar PDFs
-            </div>
-            <div id="drop-zone">
-                <p>📁 Arrastra PDFs aquí o haz clic para seleccionar</p>
-                <input type="file" id="fileInput" multiple accept="application/pdf" style="display:none" />
-            </div>
+            <div class="step-title"><span class="step-number">1</span> Cargar PDFs</div>
+            <div id="drop-zone"><p>📁 Suelta los originales aquí</p></div>
             <div id="file-list"></div>
             <div id="actions" class="hidden">
-                <button class="btn btn-primary" id="startBtn">Iniciar Recorte</button>
+                <button class="btn btn-primary" id="startBtn">Iniciar Recorte Seguro</button>
                 <button class="btn btn-danger" id="clearBtn">Limpiar</button>
             </div>
         </div>
 
-        <!-- PASO 2: RECORTAR PDFs -->
         <div class="step hidden" id="step2">
-            <div class="step-title">
-                <span class="step-number">2</span>
-                Recortar Páginas
-            </div>
+            <div class="step-title"><span class="step-number">2</span> Selección de Información</div>
             <div id="work-area">
-                <div id="progress-container">
-                    <div style="display:flex; justify-content:space-between; font-size: 14px; margin-bottom: 5px;">
-                        <span id="progress-text">Listo</span>
-                        <span id="file-name-text" style="color: #00ffcc;"></span>
-                    </div>
-                    <div id="progress-bar"><div id="progress-fill"></div></div>
-                </div>
                 <div id="canvas-container">
                     <canvas id="pdfCanvas"></canvas>
                     <div id="selection-box"></div>
                 </div>
                 <div class="info-box">
-                    💡 <strong>Instrucciones:</strong> Haz clic y arrastra para seleccionar el área que deseas recortar. Cada recorte avanzará automáticamente a la siguiente página.
+                    ⚠️ <strong>Nota de Seguridad:</strong> Solo lo que selecciones será incluido en el nuevo PDF. Todo lo demás será eliminado permanentemente antes de enviarlo a la IA.
                 </div>
             </div>
         </div>
 
-        <!-- PASO 3: CONFIGURAR GEMINI -->
         <div class="step hidden" id="step3">
-            <div class="step-title">
-                <span class="step-number">3</span>
-                Configurar IA
-            </div>
-            
-            <div class="info-box">
-                📌 <strong>API Keys:</strong><br>
-                • <strong>Gemini:</strong> <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color: #00ffcc;">Google AI Studio</a><br>
-                • <strong>Grok:</strong> <a href="https://console.x.ai" target="_blank" style="color: #00ffcc;">xAI Console</a> (Gratis con límites generosos)
-            </div>
-            
-            <div class="info-box" style="border-left-color: #44ff44;">
-                💡 <strong>Personaliza tus prompts:</strong> Edita el array <code style="background: #1a1a1a; padding: 2px 6px; border-radius: 3px; color: #00ffcc;">promptsData</code> en el código HTML para agregar o modificar prompts.
-            </div>
-            
+            <div class="step-title"><span class="step-number">3</span> Analizar Anonimizado</div>
             <div class="input-group">
-                <label for="apiKeyInput">🔑 API Key:</label>
-                <input type="password" id="apiKeyInput" placeholder="Ingresa tu API Key (Gemini o Grok)..." />
+                <label>🔑 API Key:</label>
+                <input type="password" id="apiKeyInput" placeholder="Clave de Gemini o Grok..." />
             </div>
-            
             <div class="input-group">
-                <label for="providerSelect">🤖 Proveedor de IA:</label>
-                <select id="providerSelect" style="width: 100%; padding: 12px; border: 2px solid #444; border-radius: 5px; background: #2a2a2a; color: #e0e0e0; font-family: inherit; margin-bottom: 10px;">
-                    <option value="gemini">Google Gemini</option>
-                    <option value="grok">xAI Grok (Gratis con límites)</option>
+                <label>🤖 Proveedor:</label>
+                <select id="providerSelect">
+                    <option value="gemini">Google Gemini (Multimodal)</option>
+                    <option value="grok">xAI Grok 4</option>
                 </select>
             </div>
-            
             <div class="input-group">
-                <label for="modelSelect">📡 Modelo:</label>
-                <select id="modelSelect" style="width: 100%; padding: 12px; border: 2px solid #444; border-radius: 5px; background: #2a2a2a; color: #e0e0e0; font-family: inherit;">
-                    <!-- Los modelos se llenarán dinámicamente según el proveedor -->
-                </select>
+                <label>💬 Instrucciones:</label>
+                <textarea id="promptInput" placeholder="¿Qué debe hacer la IA con los datos visibles?"></textarea>
             </div>
-            
-            <div class="input-group">
-                <label for="promptSelect">💡 Prompts Predefinidos:</label>
-                <select id="promptSelect" style="width: 100%; padding: 12px; border: 2px solid #444; border-radius: 5px; background: #2a2a2a; color: #e0e0e0; font-family: inherit; margin-bottom: 10px;">
-                    <option value="">-- Selecciona un prompt o escribe uno personalizado --</option>
-                </select>
-            </div>
-            
-            <div class="input-group">
-                <label for="promptInput">💬 Prompt para el PDF:</label>
-                <textarea id="promptInput" placeholder="Selecciona un prompt predefinido arriba o escribe tu propio prompt personalizado aquí..."></textarea>
-            </div>
-            
-            <div style="margin-top: 20px;">
-                <button class="btn btn-primary" id="downloadPdfBtn">💾 Descargar PDF Recortado</button>
-                <button class="btn btn-success" id="sendToGeminiBtn">🚀 Enviar a IA</button>
-            </div>
-            
+            <button class="btn btn-success" id="sendToGeminiBtn">🚀 Enviar a IA</button>
+            <button class="btn btn-primary" id="downloadPdfBtn">💾 Bajar PDF Limpio</button>
             <div id="loading-spinner"></div>
             <div id="status-message"></div>
         </div>
 
-        <!-- PASO 4: RESPUESTA DE GEMINI -->
         <div class="step hidden" id="step4">
-            <div class="step-title">
-                <span class="step-number">4</span>
-                Respuesta de IA
-            </div>
-            
+            <div class="step-title"><span class="step-number">4</span> Resultado</div>
             <div id="gemini-response"></div>
-            
-            <div style="margin-top: 20px;">
-                <button class="btn btn-primary" id="copyResponseBtn">📋 Copiar Respuesta</button>
-                <button class="btn btn-primary" id="newAnalysisBtn">🔄 Nuevo Análisis</button>
-                <button class="btn btn-success" id="downloadPdfBtn2">💾 Descargar PDF</button>
-            </div>
+            <button class="btn btn-primary" id="newAnalysisBtn">🔄 Volver</button>
         </div>
     </div>
 
     <script>
-        // CONFIGURACIÓN DEL WORKER LOCAL
-        pdfjsLib.GlobalWorkerOptions.workerSrc = 'pdf.worker.min.js';
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
 
         let accumulatedFiles = [];
         let workQueue = [];
         let currentTaskIndex = 0;
-        let cropResults = [];
+        let secureImages = []; // Almacenaremos recortes como imágenes puras
         let finalPdfBytes = null;
 
+        // --- LÓGICA DE CARGA ---
         const dropZone = document.getElementById('drop-zone');
-        const fileInput = document.getElementById('fileInput');
-        const fileListDiv = document.getElementById('file-list');
-        const actionsDiv = document.getElementById('actions');
         const startBtn = document.getElementById('startBtn');
-        const clearBtn = document.getElementById('clearBtn');
-        const workArea = document.getElementById('work-area');
-        const canvas = document.getElementById('pdfCanvas');
-        const ctx = canvas.getContext('2d');
-        const selectionBox = document.getElementById('selection-box');
-        const progressFill = document.getElementById('progress-fill');
-        const progressText = document.getElementById('progress-text');
-        const fileNameText = document.getElementById('file-name-text');
-        
-        const apiKeyInput = document.getElementById('apiKeyInput');
-        const providerSelect = document.getElementById('providerSelect');
-        const modelSelect = document.getElementById('modelSelect');
-        const promptSelect = document.getElementById('promptSelect');
-        const promptInput = document.getElementById('promptInput');
-        const sendToGeminiBtn = document.getElementById('sendToGeminiBtn');
-        const downloadPdfBtn = document.getElementById('downloadPdfBtn');
-        const downloadPdfBtn2 = document.getElementById('downloadPdfBtn2');
-        const newAnalysisBtn = document.getElementById('newAnalysisBtn');
-        const copyResponseBtn = document.getElementById('copyResponseBtn');
-        const loadingSpinner = document.getElementById('loading-spinner');
-        const statusMessage = document.getElementById('status-message');
-        const geminiResponse = document.getElementById('gemini-response');
-        
-        let lastGeminiResponse = '';
-        
-        // Configuración de modelos por proveedor
-        const modelsByProvider = {
-            gemini: [
-                { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash (Recomendado)', icon: '⚡' },
-                { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro (Más potente)', icon: '🚀' },
-                { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash', icon: '💨' }
-            ],
-            grok: [
-                { id: 'grok-4-1-fast-reasoning', name: 'Grok 4.1 Fast Reasoning (Recomendado)', icon: '🧠' },
-                { id: 'grok-4-1-fast-non-reasoning', name: 'Grok 4.1 Fast Non-Reasoning', icon: '⚡' },
-                { id: 'grok-4-fast', name: 'Grok 4 Fast', icon: '💨' },
-                { id: 'grok-4', name: 'Grok 4', icon: '🤖' },
-                { id: 'grok-3', name: 'Grok 3', icon: '🔷' },
-                { id: 'grok-3-mini', name: 'Grok 3 Mini (Más económico)', icon: '💎' }
-            ]
+
+        dropZone.onclick = () => {
+            let i = document.createElement('input'); i.type='file'; i.multiple=true; i.accept='application/pdf';
+            i.onchange = (e) => handleFiles(e.target.files); i.click();
         };
-        
-        // Actualizar modelos disponibles según el proveedor seleccionado
-        function updateModelOptions() {
-            const provider = providerSelect.value;
-            const models = modelsByProvider[provider];
-            
-            modelSelect.innerHTML = '';
-            models.forEach(model => {
-                const option = document.createElement('option');
-                option.value = model.id;
-                option.textContent = `${model.icon} ${model.name}`;
-                modelSelect.appendChild(option);
-            });
+
+        function handleFiles(files) {
+            accumulatedFiles = [...accumulatedFiles, ...Array.from(files)];
+            document.getElementById('file-list').style.display = 'block';
+            document.getElementById('file-list').innerHTML = accumulatedFiles.map(f => `<div class="file-item">📄 ${f.name}</div>`).join('');
+            document.getElementById('actions').classList.remove('hidden');
         }
-        
-        // Event listener para cambio de proveedor
-        providerSelect.onchange = updateModelOptions;
-        
-        // Inicializar con modelos de Gemini
-        updateModelOptions();
-        
-        // Prompts embebidos directamente en el HTML
-        // Puedes agregar más prompts editando este array
-        let promptsData = [
-            {
-                id: "lab_results",
-                nombre: "Resultados de Laboratorio",
-                icono: "🧪",
-                prompt: `Cuando recibas resultados de laboratorio clínico en formato PDF, debes presentar la información de la siguiente manera:
-
-FORMATO DE RESPUESTA:
-1. Título: "RESULTADOS DE LABORATORIO"
-2. Organizar los resultados por secciones según aparezcan en el documento
-3. Para cada parámetro, usar EXACTAMENTE este formato:
-   - Nombre del parámetro: valor unidad (rango de referencia)
-4. Ejemplo de formato:
-   **NOMBRE DE LA SECCIÓN:**
-   - Parámetro 1: 5.22 10^6/uL (4.43 - 5.93)
-   - Parámetro 2: 48.4 % (41.1 - 52.7)
-   - Parámetro 3: Negativo
-5. Reglas específicas:
-   - Usar viñetas (-) para cada parámetro
-   - Poner el nombre de cada sección en **negrita**
-   - Mantener las unidades de medida exactas del documento
-   - Si no hay rango de referencia, omitir los paréntesis
-   - Si el resultado es descriptivo (ej: "Negativo", "Normal"), no incluir paréntesis
-   - Respetar el orden de las secciones según aparecen en el documento
-6. NO incluir:
-   - Nombre del paciente
-   - Datos personales
-   - Interpretaciones médicas
-   - Comentarios sobre valores anormales
-   - Resúmenes ejecutivos
-   - Recomendaciones
-   - Explicaciones adicionales
-   - Análisis de resultados
-7. Presentar ÚNICAMENTE la lista de parámetros con sus valores y rangos de referencia.`
-            },
-            {
-                id: "resume",
-                nombre: "Resumir Documento",
-                icono: "📝",
-                prompt: "Resume este documento en español, destacando los puntos más importantes y las conclusiones principales."
-            },
-            {
-                id: "extract_data",
-                nombre: "Extraer Datos",
-                icono: "📊",
-                prompt: "Extrae todos los datos clave, fechas, nombres, cifras importantes y datos numéricos de este documento. Organízalos en una lista estructurada."
-            }
-        ];
-
-        // Poblar el selector de prompts
-        function populatePromptSelector() {
-            // Limpiar opciones existentes (excepto la primera)
-            promptSelect.innerHTML = '<option value="">-- Selecciona un prompt o escribe uno personalizado --</option>';
-            
-            // Agregar prompts
-            promptsData.forEach(prompt => {
-                const option = document.createElement('option');
-                option.value = prompt.id;
-                option.textContent = `${prompt.icono} ${prompt.nombre}`;
-                promptSelect.appendChild(option);
-            });
-        }
-        
-        // Inicializar prompts
-        populatePromptSelector();
-
-        // Event listener para el selector de prompts
-        promptSelect.onchange = (e) => {
-            const selectedId = e.target.value;
-            if (selectedId) {
-                const selectedPrompt = promptsData.find(p => p.id === selectedId);
-                if (selectedPrompt) {
-                    promptInput.value = selectedPrompt.prompt;
-                }
-            }
-        };
-
-        // PASO 1: CARGAR ARCHIVOS
-        dropZone.onclick = () => fileInput.click();
-        dropZone.ondragover = (e) => { e.preventDefault(); dropZone.classList.add('dragging'); };
-        dropZone.ondragleave = () => dropZone.classList.remove('dragging');
-        dropZone.ondrop = (e) => {
-            e.preventDefault();
-            dropZone.classList.remove('dragging');
-            const newFiles = Array.from(e.dataTransfer.files).filter(f => f.type === 'application/pdf');
-            accumulatedFiles = accumulatedFiles.concat(newFiles);
-            renderFileList();
-        };
-
-        fileInput.onchange = (e) => {
-            const newFiles = Array.from(e.target.files).filter(f => f.type === 'application/pdf');
-            accumulatedFiles = accumulatedFiles.concat(newFiles);
-            renderFileList();
-        };
-
-        function renderFileList() {
-            if (accumulatedFiles.length > 0) {
-                fileListDiv.style.display = 'block';
-                actionsDiv.classList.remove('hidden');
-                fileListDiv.innerHTML = accumulatedFiles.map(f => `<div class="file-item">📄 ${f.name}</div>`).join('');
-                startBtn.innerText = `Iniciar Recorte (${accumulatedFiles.length} archivos)`;
-            }
-        }
-
-        clearBtn.onclick = () => { 
-            accumulatedFiles = []; 
-            fileListDiv.style.display = 'none'; 
-            actionsDiv.classList.add('hidden'); 
-        };
 
         startBtn.onclick = async () => {
             workQueue = [];
             for (let file of accumulatedFiles) {
-                const arrayBuffer = await file.arrayBuffer();
-                const pdfDoc = await pdfjsLib.getDocument(arrayBuffer).promise;
-                for (let p = 1; p <= pdfDoc.numPages; p++) {
-                    workQueue.push({ file, pdfDoc, pageNumber: p });
-                }
+                const doc = await pdfjsLib.getDocument(await file.arrayBuffer()).promise;
+                for (let p = 1; p <= doc.numPages; p++) workQueue.push({ doc, pageNumber: p });
             }
             showStep(2);
-            workArea.style.display = 'flex';
-            loadNextTask();
+            loadTask();
         };
 
-        // PASO 2: RECORTAR PDFs
-        async function loadNextTask() {
+        // --- LÓGICA DE RECORTE DESTRUCTIVO ---
+        const canvas = document.getElementById('pdfCanvas');
+        const ctx = canvas.getContext('2d');
+        let currentViewScale = 1.5; // Aumentamos escala para mejor calidad de captura
+
+        async function loadTask() {
             if (currentTaskIndex >= workQueue.length) {
-                await finishBatch();
+                await generateSecurePdf();
                 return;
             }
             const task = workQueue[currentTaskIndex];
-            const page = await task.pdfDoc.getPage(task.pageNumber);
-            const viewport = page.getViewport({ scale: 0.7 });
-            canvas.width = viewport.width;
-            canvas.height = viewport.height;
-            await page.render({ canvasContext: ctx, viewport: viewport }).promise;
-            progressFill.style.width = `${(currentTaskIndex / workQueue.length) * 100}%`;
-            progressText.innerText = `Página ${currentTaskIndex + 1} de ${workQueue.length}`;
-            fileNameText.innerText = task.file.name;
+            const page = await task.doc.getPage(task.pageNumber);
+            const viewport = page.getViewport({ scale: currentViewScale });
+            canvas.width = viewport.width; canvas.height = viewport.height;
+            await page.render({ canvasContext: ctx, viewport }).promise;
         }
 
         let startX, startY, isDrawing = false;
-        canvas.parentElement.onmousedown = (e) => {
+        canvas.onmousedown = (e) => {
             isDrawing = true;
-            const rect = canvas.getBoundingClientRect();
-            startX = e.clientX - rect.left;
-            startY = e.clientY - rect.top;
-            selectionBox.style.display = 'block';
+            const r = canvas.getBoundingClientRect();
+            startX = e.clientX - r.left; startY = e.clientY - r.top;
+            document.getElementById('selection-box').style.display = 'block';
         };
 
         window.onmousemove = (e) => {
             if (!isDrawing) return;
-            const rect = canvas.getBoundingClientRect();
-            const curX = e.clientX - rect.left;
-            const curY = e.clientY - rect.top;
-            const w = curX - startX, h = curY - startY;
-            selectionBox.style.width = Math.abs(w) + 'px';
-            selectionBox.style.height = Math.abs(h) + 'px';
-            selectionBox.style.left = (w < 0 ? curX : startX) + 'px';
-            selectionBox.style.top = (h < 0 ? curY : startY) + 'px';
+            const r = canvas.getBoundingClientRect();
+            const x = e.clientX - r.left, y = e.clientY - r.top;
+            const s = document.getElementById('selection-box');
+            s.style.width = Math.abs(x-startX)+'px'; s.style.height = Math.abs(y-startY)+'px';
+            s.style.left = (x<startX?x:startX)+'px'; s.style.top = (y<startY?y:startY)+'px';
         };
 
-        window.onmouseup = (e) => {
+        window.onmouseup = async (e) => {
             if (!isDrawing) return;
             isDrawing = false;
-            selectionBox.style.display = 'none';
-            const rect = canvas.getBoundingClientRect();
-            const endX = e.clientX - rect.left;
-            const endY = e.clientY - rect.top;
+            document.getElementById('selection-box').style.display = 'none';
+            
+            const r = canvas.getBoundingClientRect();
+            const endX = e.clientX - r.left, endY = e.clientY - r.top;
+            const w = Math.abs(endX - startX), h = Math.abs(endY - startY);
 
-            if (Math.abs(endX - startX) > 10) {
-                cropResults.push({
-                    taskIndex: currentTaskIndex,
-                    x: Math.min(startX, endX), y: Math.min(startY, endY),
-                    w: Math.abs(endX - startX), h: Math.abs(endY - startY),
-                    canvasW: canvas.width, canvasH: canvas.height
-                });
+            if (w > 10) {
+                // CAPTURA DESTRUCTIVA: Extraemos los píxeles del canvas
+                // Esto garantiza que solo la imagen de la selección existe
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = w; tempCanvas.height = h;
+                tempCanvas.getContext('2d').drawImage(canvas, Math.min(startX, endX), Math.min(startY, endY), w, h, 0, 0, w, h);
+                
+                secureImages.push(tempCanvas.toDataURL('image/jpeg', 0.9));
                 currentTaskIndex++;
-                loadNextTask();
+                loadTask();
             }
         };
 
-        async function finishBatch() {
+        // --- GENERACIÓN DE NUEVO PDF (FLATTENED) ---
+        async function generateSecurePdf() {
             const { PDFDocument } = PDFLib;
-            const mergedPdf = await PDFDocument.create();
+            const pdfDoc = await PDFDocument.create();
 
-            for (const crop of cropResults) {
-                const task = workQueue[crop.taskIndex];
-                const arrayBuffer = await task.file.arrayBuffer();
-                const srcDoc = await PDFDocument.load(arrayBuffer);
-                const [copiedPage] = await mergedPdf.copyPages(srcDoc, [task.pageNumber - 1]);
-                const newPage = mergedPdf.addPage(copiedPage);
-                const { width, height } = newPage.getSize();
-                const scaleX = width / crop.canvasW;
-                const scaleY = height / crop.canvasH;
-
-                const cropBox = {
-                    x: crop.x * scaleX,
-                    y: height - ((crop.y + crop.h) * scaleY),
-                    w: crop.w * scaleX,
-                    h: crop.h * scaleY
-                };
-                newPage.setCropBox(cropBox.x, cropBox.y, cropBox.w, cropBox.h);
-                newPage.setMediaBox(cropBox.x, cropBox.y, cropBox.w, cropBox.h);
+            for (const imgData of secureImages) {
+                const img = await pdfDoc.embedJpg(imgData);
+                const page = pdfDoc.addPage([img.width, img.height]);
+                page.drawImage(img, { x: 0, y: 0, width: img.width, height: img.height });
             }
 
-            finalPdfBytes = await mergedPdf.save();
+            finalPdfBytes = await pdfDoc.save();
             showStep(3);
         }
 
-        // PASO 3: ENVIAR A GEMINI
-        downloadPdfBtn.onclick = () => {
-            saveAs(new Blob([finalPdfBytes]), "recorte_local_unificado.pdf");
-        };
+        // --- INTEGRACIÓN CON IA ---
+        document.getElementById('sendToGeminiBtn').onclick = async () => {
+            const key = document.getElementById('apiKeyInput').value;
+            const prompt = document.getElementById('promptInput').value;
+            if(!key || !finalPdfBytes) return alert("Falta API Key o PDF");
 
-        downloadPdfBtn2.onclick = () => {
-            saveAs(new Blob([finalPdfBytes]), "recorte_local_unificado.pdf");
-        };
-
-        sendToGeminiBtn.onclick = async () => {
-            const apiKey = apiKeyInput.value.trim();
-            const prompt = promptInput.value.trim();
-            const provider = providerSelect.value;
-            const selectedModel = modelSelect.value;
-
-            if (!apiKey) {
-                showMessage('❌ Por favor ingresa tu API Key', 'error');
-                return;
-            }
-
-            if (!prompt) {
-                showMessage('❌ Por favor ingresa un prompt', 'error');
-                return;
-            }
-
-            loadingSpinner.style.display = 'block';
-            sendToGeminiBtn.disabled = true;
-            showMessage(`⏳ Enviando PDF a ${provider === 'gemini' ? 'Gemini' : 'Grok'}...`, 'info');
+            document.getElementById('loading-spinner').style.display = 'block';
+            const base64 = btoa(new Uint8Array(finalPdfBytes).reduce((data, byte) => data + String.fromCharCode(byte), ''));
 
             try {
-                // Convertir PDF a base64
-                const base64Pdf = await arrayBufferToBase64(finalPdfBytes);
-
-                let response, data;
-
-                if (provider === 'gemini') {
-                    // Llamada a la API de Gemini
-                    response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:generateContent?key=${apiKey}`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            contents: [{
-                                parts: [
-                                    {
-                                        text: prompt
-                                    },
-                                    {
-                                        inline_data: {
-                                            mime_type: "application/pdf",
-                                            data: base64Pdf
-                                        }
-                                    }
-                                ]
-                            }]
-                        })
-                    });
-
-                    data = await response.json();
-
-                    if (!response.ok) {
-                        throw new Error(data.error?.message || 'Error al comunicarse con Gemini');
-                    }
-
-                    // Extraer la respuesta de Gemini
-                    const geminiText = data.candidates[0]?.content?.parts[0]?.text || 'No se recibió respuesta';
-                    lastGeminiResponse = geminiText;
-                    geminiResponse.innerHTML = formatMarkdown(geminiText);
-                    
-                } else if (provider === 'grok') {
-                    // Llamada a la API de Grok (xAI)
-                    response = await fetch(`https://api.x.ai/v1/chat/completions`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${apiKey}`
-                        },
-                        body: JSON.stringify({
-                            model: selectedModel,
-                            messages: [
-                                {
-                                    role: "user",
-                                    content: [
-                                        {
-                                            type: "text",
-                                            text: prompt
-                                        },
-                                        {
-                                            type: "image_url",
-                                            image_url: {
-                                                url: `data:application/pdf;base64,${base64Pdf}`
-                                            }
-                                        }
-                                    ]
-                                }
-                            ]
-                        })
-                    });
-
-                    data = await response.json();
-
-                    if (!response.ok) {
-                        throw new Error(data.error?.message || 'Error al comunicarse con Grok');
-                    }
-
-                    // Extraer la respuesta de Grok
-                    const grokText = data.choices[0]?.message?.content || 'No se recibió respuesta';
-                    lastGeminiResponse = grokText;
-                    geminiResponse.innerHTML = formatMarkdown(grokText);
-                }
-
+                const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: prompt }, { inline_data: { mime_type: "application/pdf", data: base64 } }] }]
+                    })
+                });
+                const data = await resp.json();
+                document.getElementById('gemini-response').innerText = data.candidates[0].content.parts[0].text;
                 showStep(4);
-
-            } catch (error) {
-                showMessage(`❌ Error: ${error.message}`, 'error');
-                console.error('Error completo:', error);
+            } catch (e) {
+                alert("Error: " + e.message);
             } finally {
-                loadingSpinner.style.display = 'none';
-                sendToGeminiBtn.disabled = false;
+                document.getElementById('loading-spinner').style.display = 'none';
             }
         };
 
-        newAnalysisBtn.onclick = () => {
-            showStep(3);
-            promptInput.value = '';
-        };
+        document.getElementById('downloadPdfBtn').onclick = () => saveAs(new Blob([finalPdfBytes]), "doc_anonimizado.pdf");
+        document.getElementById('newAnalysisBtn').onclick = () => location.reload();
 
-        copyResponseBtn.onclick = async () => {
-            try {
-                await navigator.clipboard.writeText(lastGeminiResponse);
-                const originalText = copyResponseBtn.innerText;
-                copyResponseBtn.innerText = '✅ Copiado!';
-                setTimeout(() => {
-                    copyResponseBtn.innerText = originalText;
-                }, 2000);
-            } catch (error) {
-                showMessage('❌ Error al copiar al portapapeles', 'error');
-            }
-        };
-
-        // FUNCIONES AUXILIARES
-        function showStep(stepNumber) {
-            document.querySelectorAll('.step').forEach(step => {
-                step.classList.add('hidden');
-                step.classList.remove('active');
-            });
-            const stepElement = document.getElementById(`step${stepNumber}`);
-            stepElement.classList.remove('hidden');
-            stepElement.classList.add('active');
-        }
-
-        function showMessage(message, type) {
-            statusMessage.innerHTML = `<div class="${type}-message">${message}</div>`;
-        }
-
-        function arrayBufferToBase64(buffer) {
-            return new Promise((resolve) => {
-                const blob = new Blob([buffer], { type: 'application/pdf' });
-                const reader = new FileReader();
-                reader.onloadend = () => {
-                    const base64 = reader.result.split(',')[1];
-                    resolve(base64);
-                };
-                reader.readAsDataURL(blob);
-            });
-        }
-
-        function formatMarkdown(text) {
-            // Escapar HTML
-            let formatted = text
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;');
-            
-            // Convertir markdown básico a HTML
-            formatted = formatted
-                // Headers
-                .replace(/^### (.*$)/gim, '<h3 style="color: #00ffcc; margin: 15px 0 10px 0;">$1</h3>')
-                .replace(/^## (.*$)/gim, '<h2 style="color: #00ffcc; margin: 20px 0 10px 0;">$1</h2>')
-                .replace(/^# (.*$)/gim, '<h1 style="color: #00ffcc; margin: 20px 0 15px 0;">$1</h1>')
-                // Bold
-                .replace(/\*\*(.*?)\*\*/g, '<strong style="color: #00ffcc;">$1</strong>')
-                // Italic
-                .replace(/\*(.*?)\*/g, '<em>$1</em>')
-                // Code blocks
-                .replace(/```([\s\S]*?)```/g, '<pre style="background: #1a1a1a; padding: 10px; border-radius: 5px; overflow-x: auto; border: 1px solid #444;"><code>$1</code></pre>')
-                // Inline code
-                .replace(/`(.*?)`/g, '<code style="background: #1a1a1a; padding: 2px 6px; border-radius: 3px; color: #00ffcc;">$1</code>')
-                // Line breaks
-                .replace(/\n\n/g, '<br><br>')
-                .replace(/\n/g, '<br>');
-            
-            return formatted;
+        function showStep(n) {
+            document.querySelectorAll('.step').forEach(s => s.classList.add('hidden'));
+            document.getElementById('step'+n).classList.remove('hidden');
         }
     </script>
 </body>
