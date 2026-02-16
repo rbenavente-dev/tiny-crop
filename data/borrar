@@ -1,5 +1,0 @@
-// PDF.js Worker file
-// This content is originally retrieved from https://cdn.jsdelivr.net/npm/pdfjs-dist@5.4.624/build/pdf.worker.min.js
-(function () {
-    // This is a placeholder
-})();
