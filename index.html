@@ -69,7 +69,7 @@
                 </ul>
             </div>
 
-            <div id="drop-zone"><p>📁 Arrastra tus archivos PDF aquí o haz clic</p></div>
+            <div id="drop-zone"><p>📁 Arrastra tus archivos PDF aquí o haz clic. Cuando finalices presiona "Iniciar Anonimización". Ten en cuenta que se generará un solo archivo final con todos los recortes.</p></div>
             <div id="file-list"></div>
             <div id="actions" class="hidden">
                 <button class="btn btn-primary" id="startBtn">Iniciar Anonimización</button>
@@ -78,7 +78,7 @@
 
         <div class="step hidden" id="step2">
             <div class="step-title"><span class="step-number">2</span> Recorte de Alta Densidad</div>
-            <p style="font-size: 0.85em; color: #888; margin-bottom: 10px;">Dibuja un recuadro sobre la información que deseas conservar.</p>
+            <p style="font-size: 0.85em; color: #888; margin-bottom: 10px;">Dibuja un recuadro sobre la información que deseas conservar. Si deseas conservar toda la pagina presiona "Omitir Página"</p>
             <div id="work-area">
                 <div id="canvas-container">
                     <canvas id="pdfCanvas"></canvas>
@@ -89,7 +89,7 @@
         </div>
 
         <div class="step hidden" id="step3">
-            <div class="step-title"><span class="step-number">3</span> Análisis con IA</div>
+            <div class="step-title"><span class="step-number">3</span> Análisis con IA (opcional)</div>
             <div class="input-group">
                 <label>🔑 API Key (Gemini):</label>
                 <input type="password" id="apiKeyInput" placeholder="Introduce tu clave API de Google..." />
