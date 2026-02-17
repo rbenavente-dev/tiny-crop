@@ -118,7 +118,7 @@
         let currentTaskIndex = 0;
         let secureImages = [];
         let finalPdfBytes = null;
-        const SCALE_FACTOR = 3.0; 
+        const SCALE_FACTOR = 2.0; 
 
         const canvas = document.getElementById('pdfCanvas');
         const ctx = canvas.getContext('2d');
@@ -159,7 +159,7 @@
             const viewport = page.getViewport({ scale: SCALE_FACTOR });
             canvas.width = viewport.width;
             canvas.height = viewport.height;
-            canvas.style.width = "100%"; // Ajuste visual responsivo
+            canvas.style.width = "80%"; // Ajuste visual responsivo
             await page.render({ canvasContext: ctx, viewport }).promise;
         }
 
