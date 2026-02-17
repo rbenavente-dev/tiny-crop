@@ -95,7 +95,16 @@
         </div>
 
         <div class="step hidden" id="step3">
-            <div class="step-title"><span class="step-number">3</span> Análisis con IA (opcional)</div>
+
+            <!-- SECCIÓN 3: Descargar PDF -->
+            <div class="step-title"><span class="step-number">3</span> Descargar PDF Generado</div>
+            <p style="font-size: 0.9em; color: #aaa; margin-bottom: 15px; text-align: left;">Puedes usar este archivo con el LLM de tu preferencia de manera segura (legible y sin metadatos).</p>
+            <button class="btn btn-primary" id="downloadBtn">💾 Guardar PDF Limpio</button>
+
+            <hr style="border: none; border-top: 1px solid #333; margin: 25px 0;">
+
+            <!-- SECCIÓN 4: Enviar al LLM -->
+            <div class="step-title"><span class="step-number">4</span> Enviar Directamente al LLM (opcional)</div>
             <div class="input-group">
                 <label>🔑 API Key (Gemini):</label>
                 <input type="password" id="apiKeyInput" placeholder="Introduce tu clave API de Google..." />
@@ -109,17 +118,25 @@
             </div>
             <div class="input-group">
                 <label>💬 Prompt de análisis:</label>
+                <div id="prompt-drop-zone" style="padding: 12px 16px; border: 2px dashed #444; border-radius: 5px; background: #222; color: #888; font-size: 0.85em; margin-bottom: 8px; cursor: pointer; transition: all 0.3s;" ondragover="event.preventDefault(); this.style.borderColor='#00ffcc';" ondragleave="this.style.borderColor='#444';" ondrop="handlePromptDrop(event)">
+                    📄 Arrastra un archivo .txt con tu prompt, o <span style="color:#00ffcc; text-decoration: underline;" onclick="document.getElementById('promptFileInput').click()">selecciona uno</span>
+                </div>
+                <input type="file" id="promptFileInput" accept=".txt" style="display:none;" onchange="handlePromptFile(this.files[0])">
                 <textarea id="promptInput" rows="4">Analiza el contenido de estos fragmentos de documentos y extrae la información relevante en un formato estructurado.</textarea>
             </div>
             <button class="btn btn-success" id="sendBtn">🚀 Enviar a Gemini</button>
-            <button class="btn btn-primary" id="downloadBtn">💾 Guardar PDF Limpio</button>
-            <button class="btn btn-skip" id="recropBtn">✂️ Volver a Recortar</button>
-            <button class="btn btn-skip" id="newFileBtn">📁 Nuevo Archivo</button>
             <div id="loading-spinner"></div>
             <div id="response-area" class="hidden">
-                <div class="step-title" style="margin-top: 20px; font-size: 1.1em;"><span>4</span> Resultado</div>
+                <div class="step-title" style="margin-top: 20px; font-size: 1.1em;"><span>5</span> Resultado</div>
                 <textarea id="gemini-response" rows="20" style="width: 100%; padding: 15px; border: 2px solid #444; border-radius: 8px; background: #2a2a2a; color: #e0e0e0; font-family: inherit; box-sizing: border-box; resize: vertical; line-height: 1.6;"></textarea>
             </div>
+
+            <hr style="border: none; border-top: 1px solid #333; margin: 25px 0;">
+
+            <!-- SECCIÓN 5: Navegación -->
+            <button class="btn btn-skip" id="recropBtn">✂️ Volver a Recortar</button>
+            <button class="btn btn-skip" id="newFileBtn">📁 Nuevo Archivo</button>
+
         </div>
     </div>
 
@@ -296,6 +313,23 @@
         document.getElementById('newFileBtn').onclick = () => { location.reload(); };
 
         document.getElementById('downloadBtn').onclick = () => saveAs(new Blob([finalPdfBytes]), "anonimizado_ultra.pdf");
+
+        function handlePromptDrop(e) {
+            e.preventDefault();
+            document.getElementById('prompt-drop-zone').style.borderColor = '#444';
+            const file = e.dataTransfer.files[0];
+            if (file) handlePromptFile(file);
+        }
+
+        function handlePromptFile(file) {
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                document.getElementById('promptInput').value = e.target.result;
+                document.getElementById('prompt-drop-zone').innerHTML = `✅ Prompt cargado: <span style="color:#00ffcc">${file.name}</span>`;
+            };
+            reader.readAsText(file);
+        }
 
         function showStep(n) {
             document.querySelectorAll('.step').forEach(s => s.classList.add('hidden'));
