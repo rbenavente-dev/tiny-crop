@@ -77,18 +77,20 @@
         </div>
 
         <div class="step hidden" id="step2">
-            <div class="step-title"><span class="step-number">2</span> Recorte de Alta Densidad</div>
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px;">
+                <div class="step-title" style="margin-bottom: 0;"><span class="step-number">2</span> Recorte de Alta Densidad</div>
+                <div style="display: flex; gap: 6px; align-items: center;">
+                    <button class="btn btn-primary" id="zoomOutBtn" style="padding: 8px 14px;">🔍-</button>
+                    <button class="btn btn-primary" id="zoomInBtn" style="padding: 8px 14px;">🔍+</button>
+                    <button class="btn btn-skip" id="skipPageBtn" style="padding: 8px 14px;">Omitir Página</button>
+                </div>
+            </div>
             <p style="font-size: 0.85em; color: #888; margin-bottom: 10px;">Dibuja un recuadro sobre la información que deseas conservar. Si deseas conservar toda la pagina presiona "Omitir Página"</p>
             <div id="work-area">
                 <div id="canvas-container">
                     <canvas id="pdfCanvas"></canvas>
                     <div id="selection-box"></div>
                 </div>
-                <div style="margin: 10px 0;">
-                    <button class="btn btn-primary" id="zoomOutBtn">🔍- Alejar</button>
-                    <button class="btn btn-primary" id="zoomInBtn">🔍+ Acercar</button>
-                </div>
-                <button class="btn btn-skip" id="skipPageBtn">Omitir Página</button>
             </div>
         </div>
 
@@ -111,13 +113,13 @@
             </div>
             <button class="btn btn-success" id="sendBtn">🚀 Enviar a Gemini</button>
             <button class="btn btn-primary" id="downloadBtn">💾 Guardar PDF Limpio</button>
+            <button class="btn btn-skip" id="recropBtn">✂️ Volver a Recortar</button>
+            <button class="btn btn-skip" id="newFileBtn">📁 Nuevo Archivo</button>
             <div id="loading-spinner"></div>
-        </div>
-
-        <div class="step hidden" id="step4">
-            <div class="step-title"><span class="step-number">4</span> Resultado</div>
-            <textarea id="gemini-response" rows="20" style="width: 100%; padding: 15px; border: 2px solid #444; border-radius: 8px; background: #2a2a2a; color: #e0e0e0; font-family: inherit; box-sizing: border-box; resize: vertical; line-height: 1.6; white-space: pre-wrap;"></textarea>
-            <button class="btn btn-primary" onclick="location.reload()">🔄 Nuevo Proceso</button>
+            <div id="response-area" class="hidden">
+                <div class="step-title" style="margin-top: 20px; font-size: 1.1em;"><span>4</span> Resultado</div>
+                <textarea id="gemini-response" rows="20" style="width: 100%; padding: 15px; border: 2px solid #444; border-radius: 8px; background: #2a2a2a; color: #e0e0e0; font-family: inherit; box-sizing: border-box; resize: vertical; line-height: 1.6;"></textarea>
+            </div>
         </div>
     </div>
 
@@ -276,11 +278,22 @@
                     body: JSON.stringify({ contents: [{ parts: [{ text: document.getElementById('promptInput').value }, { inline_data: { mime_type: "application/pdf", data: base64 } }] }] })
                 });
                 const d = await r.json();
-                showStep(4);
                 document.getElementById('gemini-response').value = d.candidates[0].content.parts[0].text;
+                document.getElementById('response-area').classList.remove('hidden');
             } catch (e) { alert("Error de conexión"); }
             finally { document.getElementById('loading-spinner').style.display = 'none'; }
         };
+
+        document.getElementById('recropBtn').onclick = () => {
+            secureImages = [];
+            currentTaskIndex = 0;
+            userZoomLevel = 1.0;
+            showStep(2);
+            document.getElementById('work-area').style.display = 'flex';
+            loadPage();
+        };
+
+        document.getElementById('newFileBtn').onclick = () => { location.reload(); };
 
         document.getElementById('downloadBtn').onclick = () => saveAs(new Blob([finalPdfBytes]), "anonimizado_ultra.pdf");
 
