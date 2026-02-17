@@ -156,11 +156,27 @@
             }
             const task = workQueue[currentTaskIndex];
             const page = await task.doc.getPage(task.pageNumber);
-            const viewport = page.getViewport({ scale: SCALE_FACTOR });
-            canvas.width = viewport.width;
-            canvas.height = viewport.height;
-            canvas.style.width = "80%"; // Ajuste visual responsivo
-            await page.render({ canvasContext: ctx, viewport }).promise;
+            
+            // FIT-TO-SCREEN: Calcular escala óptima basada en el contenedor
+            const container = document.getElementById('canvas-container');
+            const containerWidth = container.parentElement.clientWidth * 0.85; // 85% del ancho disponible
+            const containerHeight = window.innerHeight * 0.6; // 60% de la altura de ventana
+            
+            const viewport = page.getViewport({ scale: 1.0 });
+            
+            // Calcular escala para ajustar al contenedor manteniendo aspecto
+            const scaleX = containerWidth / viewport.width;
+            const scaleY = containerHeight / viewport.height;
+            const fitScale = Math.min(scaleX, scaleY) * SCALE_FACTOR;
+            
+            const scaledViewport = page.getViewport({ scale: fitScale });
+            
+            canvas.width = scaledViewport.width;
+            canvas.height = scaledViewport.height;
+            canvas.style.width = (scaledViewport.width / SCALE_FACTOR) + "px";
+            canvas.style.height = (scaledViewport.height / SCALE_FACTOR) + "px";
+            
+            await page.render({ canvasContext: ctx, viewport: scaledViewport }).promise;
         }
 
         let startX, startY, isDrawing = false;
