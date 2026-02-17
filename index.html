@@ -198,16 +198,18 @@
             // Calcular escala para ajustar al contenedor manteniendo aspecto
             const scaleX = containerWidth / viewport.width;
             const scaleY = containerHeight / viewport.height;
-            const fitScale = Math.min(scaleX, scaleY) * SCALE_FACTOR * userZoomLevel;
-            
-            const scaledViewport = page.getViewport({ scale: fitScale });
-            
-            canvas.width = scaledViewport.width;
-            canvas.height = scaledViewport.height;
-            canvas.style.width = (scaledViewport.width / SCALE_FACTOR) + "px";
-            canvas.style.height = (scaledViewport.height / SCALE_FACTOR) + "px";
-            
-            await page.render({ canvasContext: ctx, viewport: scaledViewport }).promise;
+            const fitScaleVisual = Math.min(scaleX, scaleY) * userZoomLevel; // Escala visual únicamente
+            const renderScale = fitScaleVisual * SCALE_FACTOR;               // Escala interna siempre 2x mayor
+
+            const visualViewport = page.getViewport({ scale: fitScaleVisual });
+            const renderViewport = page.getViewport({ scale: renderScale });
+
+            canvas.width = renderViewport.width;   // Píxeles reales: siempre alta resolución
+            canvas.height = renderViewport.height;
+            canvas.style.width = visualViewport.width + "px";   // Tamaño visual en pantalla
+            canvas.style.height = visualViewport.height + "px";
+
+            await page.render({ canvasContext: ctx, viewport: renderViewport }).promise;
         }
 
         let startX, startY, isDrawing = false;
