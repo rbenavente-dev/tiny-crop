@@ -84,6 +84,10 @@
                     <canvas id="pdfCanvas"></canvas>
                     <div id="selection-box"></div>
                 </div>
+                <div style="margin: 10px 0;">
+                    <button class="btn btn-primary" id="zoomOutBtn">🔍- Alejar</button>
+                    <button class="btn btn-primary" id="zoomInBtn">🔍+ Acercar</button>
+                </div>
                 <button class="btn btn-skip" id="skipPageBtn">Omitir Página</button>
             </div>
         </div>
@@ -123,6 +127,7 @@
         const canvas = document.getElementById('pdfCanvas');
         const ctx = canvas.getContext('2d');
         const selectionBox = document.getElementById('selection-box');
+        let userZoomLevel = 1.0; // Factor de zoom del usuario
 
         document.getElementById('drop-zone').onclick = () => {
             let i = document.createElement('input'); i.type='file'; i.multiple=true; i.onchange=(e)=>handleFiles(e.target.files); i.click();
@@ -167,7 +172,7 @@
             // Calcular escala para ajustar al contenedor manteniendo aspecto
             const scaleX = containerWidth / viewport.width;
             const scaleY = containerHeight / viewport.height;
-            const fitScale = Math.min(scaleX, scaleY) * SCALE_FACTOR;
+            const fitScale = Math.min(scaleX, scaleY) * SCALE_FACTOR * userZoomLevel;
             
             const scaledViewport = page.getViewport({ scale: fitScale });
             
@@ -228,6 +233,16 @@
         };
 
         document.getElementById('skipPageBtn').onclick = () => { currentTaskIndex++; loadPage(); };
+
+        document.getElementById('zoomInBtn').onclick = () => {
+            userZoomLevel = Math.min(userZoomLevel * 1.2, 3.0); // Máximo 3x
+            loadPage();
+        };
+
+        document.getElementById('zoomOutBtn').onclick = () => {
+            userZoomLevel = Math.max(userZoomLevel / 1.2, 0.5); // Mínimo 0.5x
+            loadPage();
+        };
 
         async function generateFinalPdf() {
             const { PDFDocument } = PDFLib;
