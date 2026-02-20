@@ -34,11 +34,28 @@
         .btn-primary { background: #00ffcc; color: #1a1a1a; }
         .btn-success { background: #44ff44; color: #1a1a1a; }
         .btn-skip { background: #555; color: white; }
+        .btn-next { background: #00aaff; color: #1a1a1a; }
         
         #work-area { display: none; width: 100%; flex-direction: column; align-items: center; margin-top: 20px; }
         #canvas-container { position: relative; border: 1px solid #444; cursor: crosshair; box-shadow: 0 10px 30px rgba(0,0,0,0.5); margin-bottom: 20px; background: white; max-width: 100%; overflow: auto; }
         #selection-box { position: absolute; border: 2px dashed #00ffcc; background: rgba(0, 255, 204, 0.2); display: none; pointer-events: none; }
-        
+        #first-crop-box { position: absolute; border: 2px solid #00ffcc; background: rgba(0, 255, 204, 0.15); display: none; pointer-events: none; }
+
+        /* Barra de progreso */
+        #progress-container { width: 100%; margin-bottom: 16px; }
+        #progress-label { font-size: 0.85em; color: #00ffcc; margin-bottom: 6px; text-align: left; }
+        #progress-bar-track { width: 100%; height: 8px; background: #333; border-radius: 4px; overflow: hidden; }
+        #progress-bar-fill { height: 100%; background: #00ffcc; border-radius: 4px; transition: width 0.4s ease; width: 0%; }
+
+        /* Radio buttons de recortes */
+        .crop-mode-selector { display: flex; align-items: center; gap: 16px; font-size: 0.9em; color: #ccc; }
+        .crop-mode-selector label { display: flex; align-items: center; gap: 5px; cursor: pointer; }
+        .crop-mode-selector input[type="radio"] { accent-color: #00ffcc; cursor: pointer; }
+
+        /* Indicador de estado de recorte */
+        #crop-status { font-size: 0.85em; color: #888; margin-bottom: 10px; min-height: 1.2em; transition: color 0.3s; }
+        #crop-status.has-first { color: #00ffcc; }
+
         .input-group { margin: 15px 0; text-align: left; }
         .input-group label { display: block; margin-bottom: 8px; color: #00ffcc; font-weight: bold; }
         .input-group input, .input-group textarea { width: 100%; padding: 12px; border: 2px solid #444; border-radius: 5px; background: #2a2a2a; color: #e0e0e0; font-family: inherit; box-sizing: border-box; }
@@ -65,7 +82,7 @@
                     <li><strong>Listo para el LLM:</strong> El resultado es legible para motores de visión (OCR), sin exponer datos sensibles.</li>
                     <li><strong>Procesamiento Local:</strong> Todo ocurre en tu navegador. Tus originales nunca salen de tu equipo.</li>
                     <li><strong>Destino:</strong> archivo PDF único con todos los recortes, que puede ser descargado o enviado directamente al LLM con un prompt (requiere clave API)</li>
-                    <li><strong>Limitación:</strong> Un recuadro por página. El archivo final es rasterizado (no tendrá texto seleccionable) y pierde un poco de calidad visual, pero la IA lo leerá perfectamente.</li>                                       
+                    <li><strong>Limitación:</strong> Hasta dos recuadros por página. El archivo final es rasterizado (no tendrá texto seleccionable) y pierde un poco de calidad visual, pero la IA lo leerá perfectamente.</li>                                       
                 </ul>
             </div>
 
@@ -77,19 +94,42 @@
         </div>
 
         <div class="step hidden" id="step2">
-            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px;">
+            <!-- Fila superior: título + zoom + omitir -->
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
                 <div class="step-title" style="margin-bottom: 0;"><span class="step-number">2</span> Recorte de Alta Densidad</div>
                 <div style="display: flex; gap: 6px; align-items: center;">
                     <button class="btn btn-primary" id="zoomOutBtn" style="padding: 8px 14px;">🔍-</button>
                     <button class="btn btn-primary" id="zoomInBtn" style="padding: 8px 14px;">🔍+</button>
                     <button class="btn btn-skip" id="skipPageBtn" style="padding: 8px 14px;">Omitir Página</button>
+                    <button class="btn btn-next hidden" id="nextPageBtn" style="padding: 8px 14px;">Siguiente Página →</button>
                 </div>
             </div>
-            <p style="font-size: 0.85em; color: #888; margin-bottom: 10px;">Dibuja un recuadro sobre la información que deseas conservar. Si deseas conservar toda la pagina presiona "Omitir Página"</p>
+
+            <!-- Fila: radio buttons de modo de recorte -->
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+                <div class="crop-mode-selector">
+                    <span style="color: #aaa; font-size: 0.85em;">Recortes por página:</span>
+                    <label><input type="radio" name="cropMode" value="1" checked> 1 recorte</label>
+                    <label><input type="radio" name="cropMode" value="2"> 2 recortes</label>
+                </div>
+            </div>
+
+            <!-- Barra de progreso -->
+            <div id="progress-container">
+                <div id="progress-label">Página 1 de 1</div>
+                <div id="progress-bar-track">
+                    <div id="progress-bar-fill"></div>
+                </div>
+            </div>
+
+            <!-- Indicador de estado del recorte actual -->
+            <div id="crop-status">Dibuja un recuadro sobre la información que deseas conservar.</div>
+
             <div id="work-area">
                 <div id="canvas-container">
                     <canvas id="pdfCanvas"></canvas>
                     <div id="selection-box"></div>
+                    <div id="first-crop-box"></div>
                 </div>
             </div>
         </div>
@@ -148,13 +188,61 @@
         let currentTaskIndex = 0;
         let secureImages = [];
         let finalPdfBytes = null;
-        const SCALE_FACTOR = 2.0; 
+        const SCALE_FACTOR = 2.0;
+
+        // Estado de doble recorte
+        let firstCropData = null;   // { x, y, w, h } en coordenadas del canvas real
+        let currentPage = null;     // página PDF.js actual (para background en modo 2 recortes)
+        let currentRenderViewport = null;
 
         const canvas = document.getElementById('pdfCanvas');
         const ctx = canvas.getContext('2d');
         const selectionBox = document.getElementById('selection-box');
-        let userZoomLevel = 1.0; // Factor de zoom del usuario
+        const firstCropBox = document.getElementById('first-crop-box');
+        let userZoomLevel = 1.0;
 
+        // --- Helpers de modo de recorte ---
+        function getCropMode() {
+            return parseInt(document.querySelector('input[name="cropMode"]:checked').value);
+        }
+
+        function updateProgressBar() {
+            const total = workQueue.length;
+            const done = currentTaskIndex;
+            const pct = total === 0 ? 0 : Math.round((done / total) * 100);
+            document.getElementById('progress-label').textContent = `Página ${Math.min(done + 1, total)} de ${total}`;
+            document.getElementById('progress-bar-fill').style.width = pct + '%';
+        }
+
+        function updateCropStatus() {
+            const statusEl = document.getElementById('crop-status');
+            const nextBtn = document.getElementById('nextPageBtn');
+            if (getCropMode() === 2) {
+                nextBtn.classList.remove('hidden');
+                if (firstCropData) {
+                    statusEl.textContent = 'Recorte 1 ✓ — Dibuja el segundo recorte, o presiona "Siguiente Página" para continuar con uno solo.';
+                    statusEl.classList.add('has-first');
+                } else {
+                    statusEl.textContent = 'Dibuja el primer recorte. Puedes hacer hasta 2 por página.';
+                    statusEl.classList.remove('has-first');
+                }
+            } else {
+                nextBtn.classList.add('hidden');
+                statusEl.textContent = 'Dibuja un recuadro sobre la información que deseas conservar.';
+                statusEl.classList.remove('has-first');
+            }
+        }
+
+        // Cuando cambia el radio button, limpiar estado de primer recorte y actualizar UI
+        document.querySelectorAll('input[name="cropMode"]').forEach(r => {
+            r.addEventListener('change', () => {
+                firstCropData = null;
+                firstCropBox.style.display = 'none';
+                updateCropStatus();
+            });
+        });
+
+        // --- Carga de archivos ---
         document.getElementById('drop-zone').onclick = () => {
             let i = document.createElement('input'); i.type='file'; i.multiple=true; i.onchange=(e)=>handleFiles(e.target.files); i.click();
         };
@@ -177,6 +265,8 @@
             }
             showStep(2);
             document.getElementById('work-area').style.display = 'flex';
+            updateProgressBar();
+            updateCropStatus();
             loadPage();
         };
 
@@ -185,34 +275,42 @@
                 await generateFinalPdf();
                 return;
             }
+
+            // Resetear estado de primer recorte al cargar nueva página
+            firstCropData = null;
+            firstCropBox.style.display = 'none';
+            updateCropStatus();
+            updateProgressBar();
+
             const task = workQueue[currentTaskIndex];
             const page = await task.doc.getPage(task.pageNumber);
-            
-            // FIT-TO-SCREEN: Calcular escala óptima basada en el contenedor
+            currentPage = page;
+
             const container = document.getElementById('canvas-container');
-            const containerWidth = container.parentElement.clientWidth * 0.85; // 85% del ancho disponible
-            const containerHeight = window.innerHeight * 0.6; // 60% de la altura de ventana
-            
+            const containerWidth = container.parentElement.clientWidth * 0.85;
+            const containerHeight = window.innerHeight * 0.6;
+
             const viewport = page.getViewport({ scale: 1.0 });
-            
-            // Calcular escala para ajustar al contenedor manteniendo aspecto
             const scaleX = containerWidth / viewport.width;
             const scaleY = containerHeight / viewport.height;
-            const fitScaleVisual = Math.min(scaleX, scaleY) * userZoomLevel; // Escala visual únicamente
-            const renderScale = fitScaleVisual * SCALE_FACTOR;               // Escala interna siempre 2x mayor
+            const fitScaleVisual = Math.min(scaleX, scaleY) * userZoomLevel;
+            const renderScale = fitScaleVisual * SCALE_FACTOR;
 
             const visualViewport = page.getViewport({ scale: fitScaleVisual });
             const renderViewport = page.getViewport({ scale: renderScale });
+            currentRenderViewport = renderViewport;
 
-            canvas.width = renderViewport.width;   // Píxeles reales: siempre alta resolución
+            canvas.width = renderViewport.width;
             canvas.height = renderViewport.height;
-            canvas.style.width = visualViewport.width + "px";   // Tamaño visual en pantalla
+            canvas.style.width = visualViewport.width + "px";
             canvas.style.height = visualViewport.height + "px";
 
             await page.render({ canvasContext: ctx, viewport: renderViewport }).promise;
         }
 
+        // --- Dibujo de selección ---
         let startX, startY, isDrawing = false;
+
         canvas.onmousedown = (e) => {
             isDrawing = true;
             const r = canvas.getBoundingClientRect();
@@ -249,41 +347,143 @@
 
             const w = Math.abs(endX - startX);
             const h = Math.abs(endY - startY);
+            const x = Math.min(startX, endX);
+            const y = Math.min(startY, endY);
 
-            if (w > 20 && h > 20) {
-                const tempCanvas = document.createElement('canvas');
-                tempCanvas.width = w; tempCanvas.height = h;
-                tempCanvas.getContext('2d').drawImage(canvas, Math.min(startX, endX), Math.min(startY, endY), w, h, 0, 0, w, h);
-                secureImages.push(tempCanvas.toDataURL('image/jpeg', 0.92));
+            if (w < 20 || h < 20) return;
+
+            const mode = getCropMode();
+
+            if (mode === 1) {
+                // Modo 1: recorte directo, avanzar
+                const crop = extractCrop(x, y, w, h);
+                secureImages.push({ type: 'single', dataUrl: crop });
                 currentTaskIndex++;
                 loadPage();
+
+            } else {
+                // Modo 2
+                if (!firstCropData) {
+                    // Guardar primer recorte y mostrar su borde persistente
+                    firstCropData = { x, y, w, h };
+                    showFirstCropBox(x, y, w, h, r);
+                    updateCropStatus();
+                } else {
+                    // Segundo recorte: combinar con el primero y avanzar
+                    await commitDualCrop(firstCropData, { x, y, w, h });
+                    currentTaskIndex++;
+                    loadPage();
+                }
             }
         };
 
-        document.getElementById('skipPageBtn').onclick = () => { currentTaskIndex++; loadPage(); };
+        function showFirstCropBox(x, y, w, h, r) {
+            const scaleX = canvas.width / r.width;
+            const scaleY = canvas.height / r.height;
+            firstCropBox.style.left = (x / scaleX) + 'px';
+            firstCropBox.style.top = (y / scaleY) + 'px';
+            firstCropBox.style.width = (w / scaleX) + 'px';
+            firstCropBox.style.height = (h / scaleY) + 'px';
+            firstCropBox.style.display = 'block';
+        }
+
+        function extractCrop(x, y, w, h) {
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = w;
+            tempCanvas.height = h;
+            tempCanvas.getContext('2d').drawImage(canvas, x, y, w, h, 0, 0, w, h);
+            return tempCanvas.toDataURL('image/jpeg', 0.92);
+        }
+
+        async function commitDualCrop(crop1, crop2) {
+            // Crear un canvas del tamaño completo de la página (alta resolución)
+            // Renderizar el fondo completo de la página
+            const bgCanvas = document.createElement('canvas');
+            bgCanvas.width = canvas.width;
+            bgCanvas.height = canvas.height;
+            const bgCtx = bgCanvas.getContext('2d');
+
+            // Pintar el fondo con el render ya existente en canvas
+            bgCtx.drawImage(canvas, 0, 0);
+
+            // Crear canvas de salida del mismo tamaño
+            const outCanvas = document.createElement('canvas');
+            outCanvas.width = canvas.width;
+            outCanvas.height = canvas.height;
+            const outCtx = outCanvas.getContext('2d');
+
+            // Fondo: copiar toda la página como base
+            outCtx.drawImage(bgCanvas, 0, 0);
+
+            // Enmascarar todo EXCEPTO los dos recortes
+            // Estrategia: pintar un overlay opaco encima de todo y luego
+            // "borrar" (destination-out) las zonas de los recortes para que
+            // se vea el fondo original debajo.
+            const maskCanvas = document.createElement('canvas');
+            maskCanvas.width = canvas.width;
+            maskCanvas.height = canvas.height;
+            const maskCtx = maskCanvas.getContext('2d');
+
+            // Overlay negro/blanco sobre toda la página
+            maskCtx.fillStyle = 'white';
+            maskCtx.fillRect(0, 0, maskCanvas.width, maskCanvas.height);
+
+            // "Abrir ventanas" en los recortes usando destination-out
+            maskCtx.globalCompositeOperation = 'destination-out';
+            maskCtx.fillStyle = 'black';
+            maskCtx.fillRect(crop1.x, crop1.y, crop1.w, crop1.h);
+            maskCtx.fillRect(crop2.x, crop2.y, crop2.w, crop2.h);
+
+            // Aplicar la máscara sobre el canvas de salida
+            outCtx.drawImage(maskCanvas, 0, 0);
+
+            secureImages.push({ type: 'dual', dataUrl: outCanvas.toDataURL('image/jpeg', 0.92) });
+        }
+
+        // Botón "Siguiente Página": avanza con lo que haya (0 o 1 recorte)
+        document.getElementById('nextPageBtn').onclick = async () => {
+            if (firstCropData) {
+                // Hay un primer recorte: guardarlo solo
+                const crop = extractCrop(firstCropData.x, firstCropData.y, firstCropData.w, firstCropData.h);
+                secureImages.push({ type: 'single', dataUrl: crop });
+            }
+            // Si no hay ningún recorte, se omite la página (igual que "Omitir")
+            currentTaskIndex++;
+            loadPage();
+        };
+
+        document.getElementById('skipPageBtn').onclick = () => {
+            firstCropData = null;
+            currentTaskIndex++;
+            loadPage();
+        };
 
         document.getElementById('zoomInBtn').onclick = () => {
-            userZoomLevel = Math.min(userZoomLevel * 1.2, 3.0); // Máximo 3x
+            userZoomLevel = Math.min(userZoomLevel * 1.2, 3.0);
             loadPage();
         };
 
         document.getElementById('zoomOutBtn').onclick = () => {
-            userZoomLevel = Math.max(userZoomLevel / 1.2, 0.5); // Mínimo 0.5x
+            userZoomLevel = Math.max(userZoomLevel / 1.2, 0.5);
             loadPage();
         };
 
+        // --- Generación del PDF final ---
         async function generateFinalPdf() {
             const { PDFDocument } = PDFLib;
             const pdfDoc = await PDFDocument.create();
-            for (let dataUrl of secureImages) {
-                const img = await pdfDoc.embedJpg(dataUrl);
+
+            for (let item of secureImages) {
+                const img = await pdfDoc.embedJpg(item.dataUrl);
                 const page = pdfDoc.addPage([img.width / SCALE_FACTOR, img.height / SCALE_FACTOR]);
                 page.drawImage(img, { x: 0, y: 0, width: img.width / SCALE_FACTOR, height: img.height / SCALE_FACTOR });
             }
+
             finalPdfBytes = await pdfDoc.save();
             showStep(3);
         }
 
+        // --- Envío a Gemini ---
         document.getElementById('sendBtn').onclick = async () => {
             const key = document.getElementById('apiKeyInput').value;
             if(!key) return alert("Ingresa la API Key");
@@ -307,8 +507,11 @@
             secureImages = [];
             currentTaskIndex = 0;
             userZoomLevel = 1.0;
+            firstCropData = null;
             showStep(2);
             document.getElementById('work-area').style.display = 'flex';
+            updateProgressBar();
+            updateCropStatus();
             loadPage();
         };
 
