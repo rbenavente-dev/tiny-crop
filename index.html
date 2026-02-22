@@ -77,12 +77,12 @@
             
             <div class="info-box">
                 <h2>🛡️ ¿Cómo funciona tiny-crop?</h2>
-                <p>Esta herramienta permite seleccionar fragmentos específicos de documentos PDF para su posterior análisis con grandes modelos de lenguaje (LLMs).</p>
+                <p>Selecciona fragmentos específicos de documentos PDF para su posterior análisis con grandes modelos de lenguaje (LLMs). Tiny-crop elimina el resto de manera local y segura.</p>
                 <ul>
                     <li><strong>Privacidad:</strong> Lo que no seleccionas es destruido físicamente. Al convertir el recorte en una imagen, se eliminan las capas de texto ocultas y metadatos originales.</li>
                     <li><strong>Listo para el LLM:</strong> El resultado es legible para motores de visión (OCR), sin exponer datos sensibles.</li>
                     <li><strong>Procesamiento Local:</strong> Todo ocurre en tu navegador. Tus originales nunca salen de tu equipo.</li>
-                    <li><strong>Destino:</strong> archivo PDF único con todos los recortes, que puede ser descargado o enviado directamente al LLM con un prompt (requiere clave API)</li>
+                    <li><strong>Destino:</strong> archivo PDF único con todos los recortes, que puede ser descargado o enviado directamente al LLM con un prompt (opcional, requiere clave API)</li>
                     <li><strong>Limitación:</strong> Hasta dos recuadros por página. El archivo final es rasterizado (no tendrá texto seleccionable) y pierde un poco de calidad visual, pero la IA lo leerá perfectamente.</li>                                       
                 </ul>
             </div>
@@ -145,7 +145,7 @@
             <hr style="border: none; border-top: 1px solid #333; margin: 25px 0;">
 
             <!-- SECCIÓN 4: Enviar al LLM -->
-            <div class="step-title"><span class="step-number">4</span> Enviar Directamente al LLM (opcional)</div>
+            <div class="step-title"><span class="step-number">4</span> OPCIONAL: Enviar Directamente al LLM </div>
             <div class="input-group">
                 <label>🔑 API Key (Gemini):</label>
                 <input type="password" id="apiKeyInput" placeholder="Introduce tu clave API de Google..." />
