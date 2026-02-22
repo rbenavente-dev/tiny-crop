@@ -4,13 +4,13 @@ What is it?
 A simple, browser-based tool to extract specific parts of PDF documents while permanently destroying the rest.
 
 Why use it?
-Standard PDF "redaction" (black bars) often leaves hidden text that AI and hackers can still read. This tool physically removes everything outside your selection by converting it into a high-resolution image, ensuring total privacy before sending data to an LLM (like Gemini).
+Standard PDF "redaction" (black bars) often leaves hidden text that Large Language Models (LLMs) can still read. This tool physically removes everything outside your selection by converting it into a image (similar but not quite a snapshot), ensuring total privacy before sending data to an LLM (Gemini, Claude, ChatGPT, etc).
 
 Key Features:
 
     True Anonymization: Unselected data is physically deleted, not just hidden.
 
-    High Clarity: Renders crops at 3.0x scale (300+ DPI) so AI can read small text perfectly.
+    High Clarity: Renders crops at 2.0x scale, so AI can read small text perfectly.
 
     100% Private: No files are uploaded. All processing happens locally in your browser.
 
@@ -23,3 +23,10 @@ How to use:
     Draw a box over the info you want to keep.
 
     Download the "clean" PDF or send it to the AI.
+
+Limitations: 
+
+    Cropping is made manually
+    
+    Only in spanish at this moment 
+    
